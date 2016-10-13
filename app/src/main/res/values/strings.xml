@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Bluetooth Electrocardiogram Monitoring</string>
+    <string name="action_settings">Settings</string>
+    <string name="title">ECG</string>
+    <string name="lastConnectLab">Previous Device:</string>
+    <string name="connLastDevice">Reconnect</string>
+    <string name="scanAll">Scan All</string>
+    <string name="analogIn">Analog Data</string>
+    <string name="analogButton">Analog Data</string>
+
+
+</resources>
