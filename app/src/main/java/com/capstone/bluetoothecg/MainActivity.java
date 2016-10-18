@@ -16,21 +16,17 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.ToggleButton;
 
+import java.io.BufferedWriter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,6 +34,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static int Value;
     static LinkedBlockingQueue<Double> bluetoothQueueForUI = new LinkedBlockingQueue<Double>();
+    VariableChangeListener variableChangeListener;
 
 
     private static final int REQUEST_ENABLE_BT = 1;
@@ -76,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
     String path = Environment.getExternalStorageDirectory().getAbsolutePath();
     String fname = "flash.txt";
+    String name = "ecg.txt";
 
     private byte[] data = new byte[3];
 
@@ -136,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
             } else if (RBLService.ACTION_DATA_AVAILABLE.equals(action)) {
                 data = intent.getByteArrayExtra(RBLService.EXTRA_DATA);
                 readAnalogInValue(data);
-
             }
         }
     };
@@ -146,6 +144,23 @@ public class MainActivity extends AppCompatActivity {
         try {
             FileOutputStream out = new FileOutputStream(sdfile);
             out.write(flash.getBytes());
+            out.flush();
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void writeEcgToFile(String flash) {
+        File sdfile = new File(path, name);
+        try {
+            FileOutputStream out = new FileOutputStream(sdfile);
+            for(int j = 0; j <1000; j++) {
+                out.write(flash.getBytes());
+                out.write("\n".getBytes());
+            }
             out.flush();
             out.close();
         } catch (FileNotFoundException e) {
@@ -186,8 +201,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
     private void startReadRssi() {
         new Thread() {
             public void run() {
@@ -221,16 +234,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void readAnalogInValue(byte[] data) {
+
         for (int i = 0; i < data.length; i += 3) {
             if (data[i] == 0x0B) {
-
                 Value = ((data[i + 1] << 8) & 0x0000ff00)
                         | (data[i + 2] & 0x000000ff);
 
                 AnalogInValueTv.setText("Value: " + Value);
-
+                writeEcgToFile(Integer.toString(Value));
             }
         }
+    }
+
+    public void setVariableChangeListener(VariableChangeListener variableChangeListener) {
+        this.variableChangeListener = variableChangeListener;
     }
 
     @Override
@@ -493,6 +510,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    public interface VariableChangeListener {
+        public void onVariableChanged(int Value);
     }
 }
 
