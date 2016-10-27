@@ -13,9 +13,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.icu.text.SimpleDateFormat;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
@@ -36,7 +39,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -156,18 +161,19 @@ public class MainActivity extends AppCompatActivity {
     private void writeEcgToFile(String flash) {
         File sdfile = new File(path, name);
         try {
-            FileOutputStream out = new FileOutputStream(sdfile);
-            for(int j = 0; j <1000; j++) {
-                out.write(flash.getBytes());
-                out.write("\n".getBytes());
-            }
+            FileOutputStream out = new FileOutputStream(sdfile,true);
+            out.write(flash.getBytes());
+            out.write("\n".getBytes());
             out.flush();
             out.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+
         }
+
     }
 
     @SuppressWarnings("resource")
@@ -232,22 +238,53 @@ public class MainActivity extends AppCompatActivity {
                 true);
         mBluetoothLeService.readCharacteristic(characteristicRx);
     }
-
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void readAnalogInValue(byte[] data) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String currentDateandTime = sdf.format(new Date());
+//        System.out.println("Size of DATA=====================" +data.length + "Time: " + currentDateandTime);
 
-        for (int i = 0; i < data.length; i += 3) {
+
+        for (int i = 0; i < data.length; i+=3) {
             if (data[i] == 0x0B) {
                 Value = ((data[i + 1] << 8) & 0x0000ff00)
                         | (data[i + 2] & 0x000000ff);
 
-                AnalogInValueTv.setText("Value: " + Value);
-                writeEcgToFile(Integer.toString(Value));
+                AnalogInValueTv.setText("Value: " + Value );
             }
+            System.out.println("Value: " + Value+ "Time : " + currentDateandTime);
         }
     }
 
-    public void setVariableChangeListener(VariableChangeListener variableChangeListener) {
-        this.variableChangeListener = variableChangeListener;
+//    private void readAnalogInValue(byte[] data) {
+//
+//        for (int i = 0; i < 10; i ++) {
+//            if (data[i] == 0x0B) {
+//                Value = ((data[i + 1] << 8) & 0x0000ff00)
+//                        | (data[i + 2] & 0x000000ff);
+//                System.out.println(Value);
+//
+//                AnalogInValueTv.setText("Value: " + Value);
+//            }
+//        }
+//    }
+
+    int counter = 0;
+
+    class Task implements Runnable {
+        @Override
+        public void run() {
+            try {
+                if(counter != 10000) {
+                    writeEcgToFile(Integer.toString(Value));
+                    counter++;
+                }
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 
     @Override
@@ -279,7 +316,6 @@ public class MainActivity extends AppCompatActivity {
 
         lastDeviceBtn = (Button) findViewById(R.id.ConnLastDevice);
         lastDeviceBtn.setOnClickListener(new View.OnClickListener() {
-
             @Override
             public void onClick(View v) {
                 mDevice.clear();

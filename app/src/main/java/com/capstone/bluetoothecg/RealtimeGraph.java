@@ -1,16 +1,17 @@
 package com.capstone.bluetoothecg;
 
+import java.util.ArrayList;
+import java.util.List;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.jjoe64.graphview.BarGraphView;
 import com.jjoe64.graphview.GraphView;
@@ -18,27 +19,19 @@ import com.jjoe64.graphview.GraphView.GraphViewData;
 import com.jjoe64.graphview.GraphViewSeries;
 import com.jjoe64.graphview.LineGraphView;
 
-import java.util.ArrayList;
-import java.util.List;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 public class RealtimeGraph extends MainActivity implements SensorEventListener {
     private final Handler mHandler = new Handler();
     private Runnable mTimer1;
-    private Runnable mTimer2;
-    private Runnable mTimer3;
     private GraphView graphView1;
-    private GraphView graphView2;
-    private GraphView graphView3;
     private GraphViewSeries exampleSeries1;
-    private GraphViewSeries exampleSeries2;
-    private GraphViewSeries exampleSeries3;
     private double sensorX = 0;
-    private double sensorY = 0;
-    private double sensorZ = 0;
     private List<GraphViewData> seriesX;
-    private List<GraphViewData> seriesY;
-    private List<GraphViewData> seriesZ;
     int dataCount = 1;
 
     //the Sensor Manager
@@ -51,31 +44,55 @@ public class RealtimeGraph extends MainActivity implements SensorEventListener {
         setContentView(R.layout.graphs);
 
         seriesX = new ArrayList<GraphViewData>();
-        seriesY = new ArrayList<GraphViewData>();
-        seriesZ = new ArrayList<GraphViewData>();
 
         //get a hook to the sensor service
         sManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        int x = 1;
+
+        new Thread(new Task()).start();
+        System.out.println("I GOT HERE  " + Value);
+
         // init example series data
         exampleSeries1 = new GraphViewSeries(new GraphViewData[] {});
-        if (x == 0) {
-            graphView1 = new BarGraphView(
+        exampleSeries1.getStyle().thickness = 5;
+        exampleSeries1.getStyle().color = Color.RED;
+        graphView1 = new LineGraphView(
                     this // context
-                    , "GraphViewDemo" // heading
+                    , "Realtime ECG" // heading
             );
-        } else {
-            graphView1 = new LineGraphView(
-                    this // context
-                    , "GraphViewDemo" // heading
-            );
-        }
+
+        graphView1.setManualYAxisBounds(800, 400);
         graphView1.addSeries(exampleSeries1); // data
+
         LinearLayout layout = (LinearLayout) findViewById(R.id.graph1);
         layout.addView(graphView1);
 
 
+    }
+    class Task implements Runnable {
+        @Override
+        public void run() {
+           getData();
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
+        }
+    }
+
+
+    public void getData() {
+        sensorX = Value;
+
+        seriesX.add(new GraphViewData(dataCount, sensorX));
+
+        dataCount++;
+
+        if (seriesX.size() > 500) {
+            seriesX.remove(0);
+            graphView1.setViewPort(dataCount - 500, 500);
+        }
     }
 
     @Override
@@ -87,24 +104,12 @@ public class RealtimeGraph extends MainActivity implements SensorEventListener {
             return;
         }
         sensorX = Value;
-        sensorY = event.values[1];
-        sensorZ = event.values[0];
 
         seriesX.add(new GraphViewData(dataCount, sensorX));
-        seriesY.add(new GraphViewData(dataCount, sensorY));
-        seriesZ.add(new GraphViewData(dataCount, sensorZ));
 
         dataCount++;
 
 
-/*		Context context = getApplicationContext();
-		float number = (float)Math.round(sensorX * 1000) / 1000;
-		//string formattedNumber = Float.toString(number);
-		CharSequence text = Float.toString(number);
-		int duration = Toast.LENGTH_SHORT;
-		Toast toast = Toast.makeText(context, text, duration);
-		toast.show();
-*/
         if (seriesX.size() > 500) {
             seriesX.remove(0);
             graphView1.setViewPort(dataCount - 500, 500);
@@ -136,7 +141,7 @@ public class RealtimeGraph extends MainActivity implements SensorEventListener {
     protected void onResume() {
         super.onResume();
 
-        sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),SensorManager.SENSOR_DELAY_FASTEST);
+        sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_FASTEST);
 
         mTimer1 = new Runnable() {
             @Override
@@ -147,6 +152,6 @@ public class RealtimeGraph extends MainActivity implements SensorEventListener {
                 mHandler.post(this); //, 100);
             }
         };
-        mHandler.postDelayed(mTimer1, 100);
+        mHandler.postDelayed(mTimer1, 10);
     }
 }
