@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter mBluetoothAdapter;
     public static List<BluetoothDevice> mDevice = new ArrayList<BluetoothDevice>();
 
+    Button savedDataBtn = null;
     Button lastDeviceBtn = null;
     Button scanAllBtn = null;
     TextView uuidTv = null;
@@ -77,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean flag = true;
     private boolean connState = false;
 
-    String path = Environment.getExternalStorageDirectory().getAbsolutePath();
+    String path = Environment.getExternalStorageDirectory().getAbsolutePath()+"/ECGDATA";
     String fname = "flash.txt";
     String name = "ecg.txt";
 
@@ -145,7 +146,9 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void writeToFile(String flash) {
-        File sdfile = new File(path, fname);
+        File root = new File(path);
+        root.mkdirs();
+        File sdfile = new File(root, fname);
         try {
             FileOutputStream out = new FileOutputStream(sdfile);
             out.write(flash.getBytes());
@@ -157,15 +160,27 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
+    int count = 0;
+    File root = null;
+    File sdfile = null;
     private void writeEcgToFile(String flash) {
-        File sdfile = new File(path, name);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        if(count == 0) {
+            String name = sdf.format(new Date())+ ".txt";
+            root = new File(path);
+            root.mkdirs();
+            sdfile = new File(root, name);
+        }
         try {
             FileOutputStream out = new FileOutputStream(sdfile,true);
             out.write(flash.getBytes());
             out.write("\n".getBytes());
             out.flush();
             out.close();
+            count++;
+            if(count == 20000) {
+                count = 0;
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -238,36 +253,20 @@ public class MainActivity extends AppCompatActivity {
                 true);
         mBluetoothLeService.readCharacteristic(characteristicRx);
     }
-    @RequiresApi(api = Build.VERSION_CODES.N)
+
     private void readAnalogInValue(byte[] data) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
         String currentDateandTime = sdf.format(new Date());
-//        System.out.println("Size of DATA=====================" +data.length + "Time: " + currentDateandTime);
 
-
-        for (int i = 0; i < data.length; i+=3) {
-            if (data[i] == 0x0B) {
-                Value = ((data[i + 1] << 8) & 0x0000ff00)
-                        | (data[i + 2] & 0x000000ff);
-
-                AnalogInValueTv.setText("Value: " + Value );
-            }
-            System.out.println("Value: " + Value+ "Time : " + currentDateandTime);
-        }
+    for (int i = 0; i < data.length; i +=2) {
+            Value = ((data[i] << 8) & 0x0000ff00)
+                    | (data[i+1] & 0x000000ff);
+            System.out.println(Value);//
+            Log.d("OCHWANGI", "Value: " + Value+ "Time : " + currentDateandTime);
+        writeEcgToFile(Integer.toString(Value));
+        AnalogInValueTv.setText("Value: " + Value);
     }
-
-//    private void readAnalogInValue(byte[] data) {
-//
-//        for (int i = 0; i < 10; i ++) {
-//            if (data[i] == 0x0B) {
-//                Value = ((data[i + 1] << 8) & 0x0000ff00)
-//                        | (data[i + 2] & 0x000000ff);
-//                System.out.println(Value);
-//
-//                AnalogInValueTv.setText("Value: " + Value);
-//            }
-//        }
-//    }
+    }
 
     int counter = 0;
 
@@ -362,6 +361,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        savedDataBtn = (Button) findViewById(R.id.SavedData);
+        savedDataBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v){
+                startActivity(new Intent(MainActivity.this,SavedDataListActivity.class));
+            }
+        });
         AnalogInBtn = (Button) findViewById(R.id.AnalogInBtn);
         AnalogInBtn.setOnClickListener(new View.OnClickListener() {
 

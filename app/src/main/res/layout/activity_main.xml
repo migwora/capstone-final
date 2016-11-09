@@ -93,6 +93,14 @@
                     android:layout_alignParentTop="true"
                     android:layout_centerHorizontal="true"
                     android:text="@string/connLastDevice" />
+
+                <Button
+                    android:text="Saved Data"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:id="@+id/SavedData"
+                    android:layout_below="@+id/ConnLastDevice" />
             </RelativeLayout>
         </LinearLayout>
     </LinearLayout>

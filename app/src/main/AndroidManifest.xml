@@ -31,7 +31,10 @@
         </activity>
         <activity android:name=".Device" />
         <activity android:name=".ECGPlot"/>
+        <activity android:name=".SavedDataListActivity"/>
         <activity android:name=".RealtimeGraph"/>
+        <activity android:name=".ViewSavedData"/>
+
 
         <service
             android:name=".RBLService"
